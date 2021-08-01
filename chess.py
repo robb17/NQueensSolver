@@ -54,12 +54,19 @@ class Piece:
 		self.y = y
 		self.threat_patterns = ALL_PATTERNS[type]
 		self.type = type
+		self.threats = {}
 
 	def is_threatening(self, x, y):
 		for pattern in self.threat_patterns:
 			if pattern.is_threatening(self.x, self.y, x, y):
 				return True
 		return False
+
+	def add_threat(self, piece):
+		self.threats[piece] = True
+
+	def remove_threat(self, piece):
+		self.threats.pop(piece)
 
 	def __str__(self):
 		return ALL_REPRESENTATIONS[self.type]
@@ -90,6 +97,24 @@ class Board:
 	def remove_piece(self, piece):
 		self.pieces.pop(piece)
 		self.board[piece.x][piece.y] = str(NULLPIECE)
+
+	def determine_threats(self):
+		for theatened_piece in self.all_pieces():
+			for piece in self.all_pieces():
+				if piece.is_threatening(theatened_piece.x, theatened_piece.y):
+					theatened_piece.add_threat(piece)
+
+	def is_at_least_one_threat(self):
+		for piece in self.all_pieces():
+			if len(piece.threats) > 0:
+				return True
+		return False
+
+	def is_new_position_unthreatened(self, x, y):
+		for piece in self.all_pieces():
+			if piece.is_threatening(x, y):
+				return False
+		return True
 
 	def __str__(self):
 		string_rep = "\n"
