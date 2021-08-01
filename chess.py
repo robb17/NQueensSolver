@@ -38,31 +38,66 @@ ALL_PATTERNS = {
 	NONE: [ThreatPattern(NONE, None)]
 	}
 
+ALL_REPRESENTATIONS = {
+	KING: "K",
+	QUEEN: "Q",
+	ROOK: "R",
+	KNIGHT: "K",
+	BISHOP: "B",
+	PAWN: "P",
+	NONE: "-"
+}
+
 class Piece:
 	def __init__(self, x, y, type=""):
 		self.x = x
 		self.y = y
-		self.threat_pattern = ALL_PATTERNS[type]
+		self.threat_patterns = ALL_PATTERNS[type]
+		self.type = type
 
 	def is_threatening(self, x, y):
-		return self.threat_pattern.is_threatening(self.x, self.y, x, y)
+		for pattern in self.threat_patterns:
+			if pattern.is_threatening(self.x, self.y, x, y):
+				return True
+		return False
+
+	def __str__(self):
+		return ALL_REPRESENTATIONS[self.type]
+
+	def __hash__(self):
+		return self.x * 1000 + self.y
+
+NULLPIECE = Piece(-1, -1, NONE)
 
 class Queen(Piece):
 	def __init__(self, x, y):
-		super().__init__(self, x, y, QUEEN)
+		super().__init__(x, y, QUEEN)
 
 class Board:
 	def __init__(self, n):
-		self.board = [None] * n
+		self.board = [NULLPIECE] * n
 		self.board = [deepcopy(self.board) for x in range(0, n)]
 		self.size = n
-		self.pieces = []
+		self.pieces = {}
 
-	def pieces(self):
+	def all_pieces(self):
 		return self.pieces
 
+	def add_piece(self, piece):
+		self.pieces[piece] = piece
+		self.board[piece.x][piece.y] = str(piece)
+
+	def remove_piece(self, piece):
+		self.pieces.pop(piece)
+		self.board[piece.x][piece.y] = str(NULLPIECE)
+
 	def __str__(self):
-		return str(self.board)
+		string_rep = "\n"
+		for row in self.board:
+			for piece in row:
+				string_rep += str(piece) + " "
+			string_rep += "\n"
+		return string_rep
 
 	def __setitem__(self, x, val):
 		self.board[x] = val
