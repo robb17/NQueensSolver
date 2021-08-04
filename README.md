@@ -25,10 +25,10 @@ Q - - - - -
 The two exterior queens may be placed in any of the four corners, but they will always threaten one another. No solution can be discovered; instead, we've found a local minimum.
 
 Similarly, consider the following board:
-```
+<pre>
 - - - - - - Q - - - - 
 - - - - - - - - - - Q 
-- **Q** - - - - - **Q** - - - 
+- <b>Q</b> - - - - - <b>Q</b> - - - 
 - - - - - Q - - - - - 
 Q - - - - - - - - - - 
 - - Q - - - - - - - - 
@@ -37,7 +37,7 @@ Q - - - - - - - - - -
 - - - - - - - - - - - 
 - - - - - - - - - Q - 
 - - - Q - - - - - - - 
-```
+</pre>
 The most-threatened queens are emboldened, and all other queens are unthreatened. Choosing one of these two problematic pieces for movement, however, places us in a bit of a tricky spot: we cannot do better by moving them, as we've found a local minimum. For this reason, in our implementation we cannot assume that heuristic "progress" can be made on each iteration. Instead, we must instantaneously relax either 1) our placement constraints (`h1`) or 2) our selection constraints (`h2`).
 
 In general, `h1` appears to outperform `h2`. See the following section for supporting data.
@@ -62,22 +62,22 @@ In general, `h1` > `h2` > `lookahead` > `backtracking` > `brute_force`. Results 
 | 17  | 0.07        | 0.11        | 0.17        | -			     | -			 |
 | 18  | 0.08        | 0.06        | 0.64        | -			     | -			 |
 | 19  | 0.09        | 0.09        | 0.14        | -			     | -			 |
-| 20  | 0.05*	    | 0.09*	      | 2.88        | -			     | -			 |
-| 21  | 0.06*	    | 0.09*	      | 0.26        | -			     | -			 |
-| 22  | 0.07*	    | 0.10*	      | 28.0        | -			     | -			 |
-| 23  | 0.07*	    | 0.15*	      | 0.81        | -			     | -			 |
-| 24  | 0.09*	    | 0.15*	      | 9.57        | -			     | -			 |
-| 25  | 0.09*	    | 0.18*	      | 1.33        | -			     | -			 |
-| 26  | 0.11*	    | 0.20*	      | 10.9        | -			     | -			 |
-| 27  | 0.12*	    | 0.22*	      | 13.2        | -			     | -			 |
+| 20  | 0.05†	    | 0.09†	      | 2.88        | -			     | -			 |
+| 21  | 0.06†	    | 0.09†	      | 0.26        | -			     | -			 |
+| 22  | 0.07†	    | 0.10†	      | 28.0        | -			     | -			 |
+| 23  | 0.07†	    | 0.15†	      | 0.81        | -			     | -			 |
+| 24  | 0.09†	    | 0.15†	      | 9.57        | -			     | -			 |
+| 25  | 0.09†	    | 0.18†	      | 1.33        | -			     | -			 |
+| 26  | 0.11†	    | 0.20†	      | 10.9        | -			     | -			 |
+| 27  | 0.12†	    | 0.22†	      | 13.2        | -			     | -			 |
 | ... | ...			| ...		  | ...		  	| ...			 | ...		     |
-| 40  | 0.44*	    | 0.57*	      | -		    | -			     | -			 |
+| 40  | 0.44†	    | 0.57†	      | -		    | -			     | -			 |
 | ... | ...			| ...		  | ...		  	| ...			 | ...		     |
-| 60  | 2.02**	    | 1.95**	  | -		    | -			     | -			 |
+| 60  | 2.02††	    | 1.95††	  | -		    | -			     | -			 |
 | ... | ...			| ...		  | ...		  	| ...			 | ...		     |
-| 80  | 6.60**	    | 7.33**	  | -		    | -			     | -			 |
+| 80  | 6.60††	    | 7.33††	  | -		    | -			     | -			 |
 | ... | ...			| ...		  | ...		  	| ...			 | ...		     |
-| 100 | 15.8**	    | 17.4**	  | -		    | -			     | -			 |
+| 100 | 15.8††	    | 17.4††	  | -		    | -			     | -			 |
 
 * Denotes averages from 10 samples
 ** Denotes averages from 5 samples
