@@ -106,28 +106,46 @@ class BacktrackingLookaheadSolver:
 class HeuristicSolver:
 	''' Populate a board naively and correct challenges––starting with pieces that are most exposed first
 	'''
-	def __init__(self, size):
-		self.board = chess.Board(size)
+	def __init__(self, size, filename=None):
+		self.board = chess.Board(size, filename)
 		self.size = size
+		self.prior_states = {}
+		self.relaxed_selection = False
+		self.relaxed_placement = False
+
+	def set_constraint_relaxation(self, type):
+		if type == "placement":
+			self.relaxed_placement = True
+		elif type == "selection":
+			self.relaxed_selection = True
 
 	def solve(self):
 
 		#  initialize board
-		for x in range(0, self.size):
-			self.board.add_piece(chess.Queen(x, x))
+		if len(self.board.all_pieces()) == 0:
+			for x in range(0, self.size):
+				self.board.add_piece(chess.Queen(x, x))
 		self.board.determine_threats()
+		relaxed_constraints = False
 
 		while self.board.is_at_least_one_threat():
 
 			#  find queen to move
 			all_queens = list(self.board.all_pieces())
-			all_queens.sort(key=lambda q: len(q.threats), reverse=True)
-			maxima = []
-			i = 0
-			while i < len(self.board) and len(all_queens[i].threats) == len(all_queens[0].threats):
-				maxima.append(all_queens[i])
-				i += 1
-			queen_to_move = random.choice(maxima) #  avoid some local minima
+			queen_to_move = None
+			if relaxed_constraints and self.relaxed_selection:
+				queen_to_move = random.choice(all_queens)
+				relaxed_constraints = False
+			else:
+				all_queens.sort(key=lambda q: len(q.threats), reverse=True)
+				maxima = []
+				i = 0
+				while i < len(self.board) and len(all_queens[i].threats) == len(all_queens[0].threats):
+					maxima.append(all_queens[i])
+					i += 1
+				queen_to_move = random.choice(maxima) #  avoid some local minima
+
+			# remove the queen
 			self.board.remove_piece(queen_to_move)
 			for piece in self.board.all_pieces():
 				if queen_to_move.is_threatening(piece.x, piece.y):
@@ -135,25 +153,30 @@ class HeuristicSolver:
 
 			# find best position to move it to
 			minima = []
-			minimum_threats = len(queen_to_move.threats)
-			for x in range(0, self.size):
-				for y in range(0, self.size):
-					n_threats = 0
-					for piece in self.board.all_pieces():
-						if x == piece.x and y == piece.y:
-							n_threats = math.inf
+			coordinates = None
+			if relaxed_constraints and self.relaxed_placement:
+				coordinates = (random.randint(0, self.size - 1), random.randint(0, self.size - 1))
+			else:
+				minimum_threats = math.inf
+				for x in range(0, self.size):
+					for y in range(0, self.size):
+						if x == queen_to_move.x and y == queen_to_move.y:	# don't move to old location
 							continue
-						if piece.is_threatening(x, y):
-							n_threats += 1
-					if n_threats <= minimum_threats:
-						if n_threats < minimum_threats:
-							minima = [(x, y)]
-						else:
-							minima.append((x, y))
-						minimum_threats = n_threats
-
+						n_threats = 0
+						for piece in self.board.all_pieces():
+							if x == piece.x and y == piece.y:
+								n_threats = math.inf
+								continue
+							if piece.is_threatening(x, y):
+								n_threats += 1
+						if n_threats <= minimum_threats:
+							if n_threats < minimum_threats:
+								minima = [(x, y)]
+							else:
+								minima.append((x, y))
+							minimum_threats = n_threats
+				coordinates = random.choice(minima) #  avoid some local minima
 			# apply the move
-			coordinates = random.choice(minima) #  avoid some local minima
 			new_queen = chess.Queen(coordinates[0], coordinates[1])
 			for piece in self.board.all_pieces():
 				if new_queen.is_threatening(piece.x, piece.y):
@@ -161,14 +184,35 @@ class HeuristicSolver:
 				if piece.is_threatening(new_queen.x, new_queen.y):
 					new_queen.add_threat(piece)
 			self.board.add_piece(new_queen)
+			if self.prior_states.get(self.board.__hash__()):
+				relaxed_constraints = True
+			else:
+				self.prior_states[self.board.__hash__()] = True
 		return self.board
+
+class H1(HeuristicSolver):
+	def __init__(self, size, filename=None):
+		super().__init__(size, filename)
+		super().set_constraint_relaxation("placement")
+
+class H2(HeuristicSolver):
+	def __init__(self, size, filename=None):
+		super().__init__(size, filename)
+		super().set_constraint_relaxation("selection")
+
+def average(lst):
+	acc = 0
+	for i in lst:
+		acc += i
+	return acc / len(lst)
 
 if __name__ == "__main__":
 	types = {"brute_force": [SlightlyIntelligentBruteForceSolver],
 			"backtracking": [BasicBacktrackingSolver],
-			"heuristic": [HeuristicSolver],
+			"h1": [H1],
+			"h2": [H2],
 			"lookahead": [BacktrackingLookaheadSolver],
-			"all": [HeuristicSolver, BacktrackingLookaheadSolver, BasicBacktrackingSolver, SlightlyIntelligentBruteForceSolver]}
+			"all": [H1, H2, BacktrackingLookaheadSolver, BasicBacktrackingSolver, SlightlyIntelligentBruteForceSolver]}
 	types_keys = list(types.keys())
 	formatted_types = "".join(x + ", " for x in types_keys[:-1])
 	formatted_types += types_keys[-1]
@@ -176,15 +220,22 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Solve the n-queens problem via several methods.')
 	parser.add_argument('size', metavar='S', help='the size of the chess board', type=int)
 	parser.add_argument('type', metavar='T', nargs="*", help='select the type of method used in finding a \
-			solution. Available types:\n' + formatted_types, default="all", choices=types_keys)
+			solution. Available types:' + formatted_types, default="all", choices=types_keys)
+	parser.add_argument('-l', "--load", help='load a file containing a representation of \
+			the ' + "board's" + ' starting state––allowed only if solving with "h1" or "h2"')
 	args = parser.parse_args()
 
 	if isinstance(args.type, str):
 		args.type = [args.type]
+	all_times_1 = []
+	all_times_2 = []
 	for t in args.type:
 		for c in types[t]:
 			t1 = time.time()
-			instance = c(args.size)
+			instance = c(args.size) if c != H1 and c != H2 else c(args.size, args.load)
+			if c != HeuristicSolver and args.load:
+				print("Specified starting board state was NOT used in determining the following solution:")
 			board = instance.solve()
 			print(board)
 			print("Finished in " + str(round(time.time() - t1, 2)) + " seconds")
+

@@ -1,10 +1,11 @@
 from copy import deepcopy
 from math import inf
+from association_table import AssociationTable
 
 STRAIGHT = 0
 DIAGONAL = 1
 L = 2
-NONE = 3
+NONE = 9
 
 KING = 0
 QUEEN = 1
@@ -20,6 +21,8 @@ class ThreatPattern:
 		self.distance = distance
 
 	def is_threatening(self, starting_x, starting_y, x, y):
+		if starting_x == x and starting_y == y:
+			return False
 		if self.pattern_string == STRAIGHT:
 			return (starting_x == x and self.distance >= abs(starting_x - x)) or (starting_y == y and self.distance >= abs(starting_y - y))
 		elif self.pattern_string == DIAGONAL:
@@ -71,7 +74,7 @@ ALL_PATTERNS = {
 	NONE: [ThreatPattern(NONE, None)]
 	}
 
-ALL_REPRESENTATIONS = {
+ALL_REPRESENTATIONS = AssociationTable({	# support bidirectional indexing
 	KING: "K",
 	QUEEN: "Q",
 	ROOK: "R",
@@ -80,7 +83,7 @@ ALL_REPRESENTATIONS = {
 	PAWN: "P",
 	NONE: "-",
 	MARKED_NULL: "!"
-}
+})
 
 class Piece:
 	def __init__(self, x, y, type=""):
@@ -113,6 +116,9 @@ class Piece:
 		#	return ALL_REPRESENTATIONS[MARKED_NULL]
 		return ALL_REPRESENTATIONS[self.type]
 
+	def __int__(self):
+		return self.type
+
 	def __hash__(self):
 		return self.x * 1000 + self.y
 
@@ -123,24 +129,59 @@ class Queen(Piece):
 		super().__init__(x, y, QUEEN)
 
 class Board:
-	def __init__(self, n):
-		self.board = []
-		for x in range(0, n):
-			self.board.append([Piece(x, y, NONE) for y in range(0, n)])
+	def __init__(self, n, filename=None):
 		self.size = n
-		self.pieces = {}
+		self.non_dummy_pieces = {}
+		if filename:
+			self.load_from_file(filename)
+		else:
+			self.board = []
+			for x in range(0, n):
+				self.board.append([Piece(x, y, NONE) for y in range(0, n)])
+
+	def load_from_file(self, filename):
+		self.board = []
+		row = []
+		x = 0
+		y = 0
+		self.size = None
+		with open(filename, "r") as rep:
+			for line in rep:
+				for c in line:
+					if c == " ":
+						continue
+					elif ALL_REPRESENTATIONS.get(c):
+						piece = Piece(x, y, ALL_REPRESENTATIONS[c])
+						if ALL_REPRESENTATIONS[c] != NONE and ALL_REPRESENTATIONS[c] != MARKED_NULL:
+							self.non_dummy_pieces[piece] = piece
+						row.append(piece)
+						y += 1
+				self.board.append(row)
+				row = []
+				if not self.size:
+					self.size = y
+				elif y != self.size:
+					print("malformed board: variable width")
+					exit(1)
+				x += 1
+				y = 0
+			if not ((x == self.size and y == 0) or (x == self.size - 1 and y == self.size - 1)):
+				print("malformed board: height does not match width")
+				exit(1)
+		print("Load complete")
+		print(self)
 
 	def all_pieces(self):
-		return self.pieces
+		return self.non_dummy_pieces
 
 	def add_piece(self, piece, mark_new_threats=False):
-		self.pieces[piece] = piece
+		self.non_dummy_pieces[piece] = piece
 		self.board[piece.x][piece.y] = piece
 		if mark_new_threats:
 			self.add_threats(piece.all_subsequent_threatened_locations(piece.x, piece.y, self.size), piece)
 
 	def remove_piece(self, piece, remove_threats=False):
-		self.pieces.pop(piece)
+		self.non_dummy_pieces.pop(piece)
 		self.board[piece.x][piece.y] = Piece(piece.x, piece.y, NONE)
 		if remove_threats:
 			self.remove_threats(piece.all_subsequent_threatened_locations(piece.x, piece.y, self.size), piece)
@@ -201,3 +242,11 @@ class Board:
 
 	def __len__(self):
 		return self.size
+
+	def __hash__(self):
+		hsh = 0
+		for x in range(0, self.size):
+			for y in range(0, self.size):
+				hsh *= 10
+				hsh += int(self.board[x][y])
+		return hsh
