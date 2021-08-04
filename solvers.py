@@ -3,22 +3,23 @@ from itertools import permutations
 import random
 import math
 import argparse
+import time
 
 class SlightlyIntelligentBruteForceSolver:
 	''' Brute force solver that makes use of the fact that there can exist at most one queen per row and at most one queen per column
 	'''
-	def __init__(self, length):
+	def __init__(self, size):
 		self.board = None
-		self.length = length
+		self.size = size
 
 	def solve(self):
 		all_allowed_permutations = []
-		x = [i for i in range(0, self.length)]
-		y = [i for i in range(0, self.length)]
+		x = [i for i in range(0, self.size)]
+		y = [i for i in range(0, self.size)]
 		all_y_perms = list(permutations(y))
 		for i in range(0, len(all_y_perms)):
 			current_matching = []
-			self.board = chess.Board(self.length)
+			self.board = chess.Board(self.size)
 			is_valid_board = True
 			for j in x: # keep adding pieces using x, y_permutations until one addition violates constraints
 				if not self.board.is_new_position_unthreatened(j, all_y_perms[i][j]):
@@ -31,11 +32,11 @@ class SlightlyIntelligentBruteForceSolver:
 		return self.board
 
 class BasicBacktrackingSolver:
+	''' Bread and butter
 	'''
-	'''
-	def __init__(self, length):
-		self.board = chess.Board(length)
-		self.length = length
+	def __init__(self, size):
+		self.board = chess.Board(size)
+		self.size = size
 		self.queen_stack = []			#  for later backtracking: remove the most recent queen when in deadlock
 		self.disallowed_y = {}
 
@@ -54,33 +55,65 @@ class BasicBacktrackingSolver:
 
 	def solve(self):
 		x = 0
-		while x <= len(self.board):
+		while x <= self.size:
 			y = 0
-			if x >= len(self.board):
+			if x >= self.size:
 				x, y = self._remove_constraint()
 				y += 1
-			while y < len(self.board):
+			while y < self.size:
 				if self.disallowed_y.get(y): 	#  optimization: if queen exists in column, no other queens can be placed here
 					y += 1
 					continue
 				if self.board.is_new_position_unthreatened(x, y):
 					x, y = self._add_constraint(x, y)
-					if len(self.queen_stack) == self.length:			#  can only ever reach solved state on addition
+					if len(self.queen_stack) == self.size:		#  can only ever reach solved state on addition
 						return self.board
 				y += 1
 			x += 1
 
+class BacktrackingLookaheadSolver:
+
+	def __init__(self, size):
+		self.board = chess.Board(size)
+		self.size = size
+		self.queen_stack = []
+
+	def pop_queen(self, x, y):
+		mru_queen = self.queen_stack.pop()
+		self.board.remove_piece(mru_queen, remove_threats=True)
+		return mru_queen.x, mru_queen.y
+
+	def solve(self):
+		x = 0
+		while x <= self.size:
+			y = 0
+			while y < self.size:
+				if self.board.is_new_position_unthreatened(x, y):
+					new_queen = chess.Queen(x, y)
+					self.queen_stack.append(new_queen)
+					self.board.add_piece(new_queen, mark_new_threats=True)
+					if len(self.queen_stack) == self.size:		#  can only ever reach solved state on addition
+						return self.board
+					if (x < self.size - 1 and self.board.is_entire_row_threatened(x + 1)):
+						x, y = self.pop_queen(x, y)
+				if (x == self.size - 1 and y == self.size - 1) or (y == self.size - 1 and self.board.no_queens_in_row(x)):
+					x, y = self.pop_queen(x, y)
+					if y == self.size - 1 and self.board.no_queens_in_row(x):  # possible that the most recent queen was in the far-right column
+						x, y = self.pop_queen(x, y)
+				y += 1
+			x += 1
+
 class HeuristicSolver:
-	''' Randomly populate a board and correct challenges––starting with pieces that are most exposed first
+	''' Populate a board naively and correct challenges––starting with pieces that are most exposed first
 	'''
-	def __init__(self, length):
-		self.board = chess.Board(length)
-		self.length = length
+	def __init__(self, size):
+		self.board = chess.Board(size)
+		self.size = size
 
 	def solve(self):
 
 		#  initialize board
-		for x in range(0, self.length):
+		for x in range(0, self.size):
 			self.board.add_piece(chess.Queen(x, x))
 		self.board.determine_threats()
 
@@ -103,8 +136,8 @@ class HeuristicSolver:
 			# find best position to move it to
 			minima = []
 			minimum_threats = len(queen_to_move.threats)
-			for x in range(0, self.length):
-				for y in range(0, self.length):
+			for x in range(0, self.size):
+				for y in range(0, self.size):
 					n_threats = 0
 					for piece in self.board.all_pieces():
 						if x == piece.x and y == piece.y:
@@ -134,13 +167,24 @@ if __name__ == "__main__":
 	types = {"brute_force": [SlightlyIntelligentBruteForceSolver],
 			"backtracking": [BasicBacktrackingSolver],
 			"heuristic": [HeuristicSolver],
-			"all": [SlightlyIntelligentBruteForceSolver, BasicBacktrackingSolver, HeuristicSolver]}
+			"lookahead": [BacktrackingLookaheadSolver],
+			"all": [HeuristicSolver, BacktrackingLookaheadSolver, BasicBacktrackingSolver, SlightlyIntelligentBruteForceSolver]}
+	types_keys = list(types.keys())
+	formatted_types = "".join(x + ", " for x in types_keys[:-1])
+	formatted_types += types_keys[-1]
+
 	parser = argparse.ArgumentParser(description='Solve the n-queens problem via several methods.')
-	parser.add_argument('length', metavar='S', help='the size of the chess board', type=int)
-	parser.add_argument('type', metavar='T', help='select the type of method used for solving', default="all", choices=types.keys())
+	parser.add_argument('size', metavar='S', help='the size of the chess board', type=int)
+	parser.add_argument('type', metavar='T', nargs="*", help='select the type of method used in finding a \
+			solution. Available types:\n' + formatted_types, default="all", choices=types_keys)
 	args = parser.parse_args()
-	if args.type in types:
-		for c in types[args.type]:
-			instance = c(args.length)
+
+	if isinstance(args.type, str):
+		args.type = [args.type]
+	for t in args.type:
+		for c in types[t]:
+			t1 = time.time()
+			instance = c(args.size)
 			board = instance.solve()
 			print(board)
+			print("Finished in " + str(round(time.time() - t1, 2)) + " seconds")
