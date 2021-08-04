@@ -79,8 +79,8 @@ In general, `h1` > `h2` > `lookahead` > `backtracking` > `brute_force`. Results 
 | ... | ...			| ...		  | ...		  	| ...			 | ...		     |
 | 100 | 15.8††	    | 17.4††	  | -		    | -			     | -			 |
 
-* Denotes averages from 10 samples
-** Denotes averages from 5 samples
+† Denotes averages from 10 samples
+†† Denotes averages from 5 samples
 Results from deployment of `lookahead`, `backtracking`, and `brute_force` are not aggregates as a result of these implementations' deterministic nature.
 
 ## Usage
