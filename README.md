@@ -52,7 +52,7 @@ Use of `pypy3` is recommended, but the executable `python3` works, as well.
 pypy3 solvers.py chess_board_size [ [solution_generation_method] ...]
 ```
 Recognized solution keywords:
-	- `heuristic`
-	- `lookahead`
-	- `backtracking`
-	- `brute_force`
+- `heuristic`
+- `lookahead`
+- `backtracking`
+- `brute_force`
