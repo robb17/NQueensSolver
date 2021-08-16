@@ -233,7 +233,7 @@ if __name__ == "__main__":
 		for c in types[t]:
 			t1 = time.time()
 			instance = c(args.size) if c != H1 and c != H2 else c(args.size, args.load)
-			if c != HeuristicSolver and args.load:
+			if (c != H1 and c != H2) and args.load:
 				print("Specified starting board state was NOT used in determining the following solution:")
 			board = instance.solve()
 			print(board)
