@@ -37,6 +37,8 @@ Let's consider the *most-threatened heuristic*. That is, a heuristic that select
 <b>until</b> no more threats
 </pre>
 
+Why this type of solver is dramatically more efficient than each of those presented above might not be immediately apparent, but it becomes a bit more intuitive if we think about the puzzle once again as a gigantic tree wherein the root is the unfilled board, and each placement of a queen brings us to a new branch. With each of the backtracking solvers, we're fully exploring each subtree (albeit with a bit of pruning), but in this case we're gracefully dancing from one subtree to the next.
+
 ## Convergence
 
 Provided there exists a solution for the given board size, the fact that the brute-force, backtracking, and lookahead solvers will converge on a solution is easy to show. They explore all possible placements until a solution is found, skipping over only invalid solutions. That the heuristic solver will converge, however, is a bit more interesting to think about.
