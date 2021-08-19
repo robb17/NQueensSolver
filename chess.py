@@ -224,8 +224,14 @@ class Board:
 				return True
 		return False
 
-	def is_new_position_unthreatened(self, x, y):
-		return self.board[x][y].is_unthreatened()
+	def is_new_position_unthreatened(self, x, y, downward_opt=True):
+		if downward_opt:
+			return self.board[x][y].is_unthreatened()
+		else:
+			for piece in self.all_pieces():
+				if piece.is_threatening(x, y):
+					return False
+			return True
 
 	def __str__(self):
 		string_rep = "\n"

@@ -22,7 +22,7 @@ class SlightlyIntelligentBruteForceSolver:
 			self.board = chess.Board(self.size)
 			is_valid_board = True
 			for j in x: # keep adding pieces using x, y_permutations until one addition violates constraints
-				if not self.board.is_new_position_unthreatened(j, all_y_perms[i][j]):
+				if not self.board.is_new_position_unthreatened(j, all_y_perms[i][j], downward_opt=False):
 					is_valid_board = False
 					break
 				new_queen = chess.Queen(j, all_y_perms[i][j])
