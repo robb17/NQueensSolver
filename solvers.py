@@ -26,7 +26,7 @@ class SlightlyIntelligentBruteForceSolver:
 					is_valid_board = False
 					break
 				new_queen = chess.Queen(j, all_y_perms[i][j])
-				self.board.add_piece(new_queen)
+				self.board.add_piece(new_queen, mark_new_threats=True)
 			if is_valid_board:
 				return self.board
 		return self.board
@@ -43,13 +43,13 @@ class BasicBacktrackingSolver:
 	def _add_constraint(self, x, y):
 		new_queen = chess.Queen(x, y)
 		self.queen_stack.append(new_queen)
-		self.board.add_piece(new_queen)
+		self.board.add_piece(new_queen, mark_new_threats=True)
 		self.disallowed_y[y] = True
 		return x, len(self.board) - 1	#  can be immediately certain that there are no other valid placements in the row
 
 	def _remove_constraint(self):
 		mru_queen = self.queen_stack.pop()
-		self.board.remove_piece(mru_queen)
+		self.board.remove_piece(mru_queen, remove_threats=True)
 		self.disallowed_y.pop(mru_queen.y)
 		return mru_queen.x, mru_queen.y	#  set x, y back to old queen's location
 

@@ -33,6 +33,9 @@ class ThreatPattern:
 			return False
 
 	def all_subsequent_threatened_locations(self, x, y, length):
+		''' Gives all threatened locations for x' in x < x' < length 
+			and y' in y < y' < length
+		'''
 		locations = []
 		if self.pattern_string == STRAIGHT:
 			x_temp = x + 1
@@ -59,9 +62,9 @@ class ThreatPattern:
 		elif self.pattern_string == L:
 			dx = [1, -1, 2, -2]
 			dy = [2, 2, 1, 1]	# y strictly increases
-			for i in range(0, len(dloc)):
-				if dloc[i] + x >= 0 and dloc[i] + x < length and dloc[i] + y >= 0 and dloc[i] + y < length:
-					locations.append((dloc[i] + x, dloc[i] + y))
+			for i in range(0, len(dx)):
+				if dx[i] + x >= 0 and dx[i] + x < length and dy[i] + y >= 0 and dy[i] + y < length:
+					locations.append((dx[i] + x, dy[i] + y))
 		return locations
 
 ALL_PATTERNS = {
@@ -105,6 +108,9 @@ class Piece:
 	def remove_threat(self, piece):
 		self.threats.pop(piece)
 
+	def is_unthreatened(self):
+		return len(self.threats) == 0
+
 	def all_subsequent_threatened_locations(self, x, y, length):
 		locations = []
 		for pattern in self.threat_patterns:
@@ -120,9 +126,7 @@ class Piece:
 		return self.type
 
 	def __hash__(self):
-		return self.x * 1000 + self.y
-
-NULLPIECE = Piece(-1, -1, NONE)
+		return self.x * 10000 + self.y
 
 class Queen(Piece):
 	def __init__(self, x, y):
@@ -221,10 +225,7 @@ class Board:
 		return False
 
 	def is_new_position_unthreatened(self, x, y):
-		for piece in self.all_pieces():
-			if piece.is_threatening(x, y):
-				return False
-		return True
+		return self.board[x][y].is_unthreatened()
 
 	def __str__(self):
 		string_rep = "\n"
